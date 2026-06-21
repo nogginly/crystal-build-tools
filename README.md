@@ -31,8 +31,9 @@ bin/crystal-macos-static-build --help
 ```
 
 > On Linux, use Crystal's own `--static` flag instead (works out of the box on
-> Alpine). See [`docs/macos-static-linking.md`](docs/macos-static-linking.md)
-> for why a separate tool is needed on macOS.
+> Alpine), or use `crystal-linux-static-build` below to produce a Linux binary
+> from macOS. See [`docs/macos-static-linking.md`](docs/macos-static-linking.md)
+> for why a separate tool is needed on macOS specifically.
 
 #### Manual usage
 
@@ -55,11 +56,64 @@ tools/crystal-build-tools/bin/crystal-macos-static-build src/myapp.cr \
       -o bin/release/myapp --release
 ```
 
+### `crystal-linux-static-build`
+
+Builds a fully static Crystal binary for Linux using an Alpine container, from
+either macOS or Linux. The result has zero runtime dependencies and runs on
+any x86_64 Linux. Supports both Podman and Docker.
+
+```sh
+# Basic build — fully static binary for Linux
+bin/crystal-linux-static-build src/myapp.cr
+
+# With sqlite3 (e.g. crystal-sqlite3 shard or vecstolite)
+bin/crystal-linux-static-build src/myapp.cr \
+  --extra-apks "sqlite-static"
+
+# With a web UI pre-build step
+bin/crystal-linux-static-build src/enkaidu.cr \
+  --binary enkaidu \
+  --extra-apks "nodejs npm sqlite-static" \
+  --pre-build "cd webui && npm i && npm run build && cd .."
+
+# Full options
+bin/crystal-linux-static-build --help
+```
+
+> Podman is preferred when both are available (daemonless, rootless by
+> default); pass `--engine docker` to use Docker instead.
+
+#### Manual usage
+
+```sh
+tools/crystal-build-tools/bin/crystal-linux-static-build src/myapp.cr \
+  --binary myapp --extra-apks "sqlite-static"
+```
+
+#### GitHub Actions workflow usage
+
+```yaml
+- name: Checkout with submodules
+  uses: actions/checkout@v6
+  with:
+    submodules: true
+
+- name: Build static Linux binary
+  run: |
+    tools/crystal-build-tools/bin/crystal-linux-static-build src/myapp.cr \
+      --binary myapp --extra-apks "sqlite-static" --engine docker
+```
+
 ### Why?
 
-The background and reasoning behind these tools is documented in
-[`docs/macos-static-linking.md`](docs/macos-static-linking.md) — a full
-account of what was tried, what failed, and why the current approach works.
+The background and reasoning behind these tools is documented in:
+
+- [`docs/macos-static-linking.md`](docs/macos-static-linking.md) — the
+  investigation behind `crystal-macos-static-build`: what was tried, what
+  failed, and why a manual link step is necessary on macOS.
+- [`docs/linux-static-building.md`](docs/linux-static-building.md) — the
+  approach behind `crystal-linux-static-build`, the Alpine APK reference, and
+  how the two scripts relate.
 
 ## Contributions, by invitation!
 

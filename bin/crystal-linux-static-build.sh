@@ -13,18 +13,29 @@
 #
 # How it works:
 #   1. Detect podman or docker (podman preferred; override with --engine)
-#   2. Pull crystallang/crystal:latest-alpine if not already cached
-#   3. Mount the project directory into the container read-only
-#   4. Mount the output directory read-write
-#   5. Run apk add for any extra Alpine packages needed (e.g. sqlite-static)
-#   6. Run shards install + shards build --release --static inside Alpine
-#   7. The binary lands in the output path on the host
+#   2. Detect host architecture (amd64 or arm64) — the container engine
+#      pulls the matching native image, so this runs natively on both
+#      Intel/AMD and ARM hosts (including Apple Silicon and ARM CI runners)
+#   3. Pull crystallang/crystal:latest-alpine if not already cached
+#   4. Mount the project directory into the container read-only
+#   5. Mount the output directory read-write
+#   6. Run apk add for any extra Alpine packages needed (e.g. sqlite-static)
+#   7. Run shards install + shards build --release --static inside Alpine
+#   8. The binary lands in the output path on the host
+#
+# Note on architecture:
+#   This script builds natively for whatever architecture the host is
+#   running on — no cross-compilation or QEMU emulation. To produce both
+#   amd64 and arm64 binaries, run this script on a runner of each
+#   architecture (e.g. GitHub Actions' ubuntu-latest and ubuntu-24.04-arm)
+#   and let each build its own native binary, matrix-style.
 #
 # Usage:
 #   crystal-linux-static-build [options] <source.cr>
 #
 # Options:
-#   -o <path>           Output binary path (default: bin/release/<name>-linux)
+#   -o <path>           Output binary path
+#                       (default: bin/release/<name>-linux-<arch>)
 #   --binary <name>     Binary name as defined in shard.yml targets
 #                       (default: derived from source filename)
 #   --extra-apks <pkgs> Space-separated Alpine packages to install before build
@@ -43,7 +54,7 @@
 #   -h, --help          Show this message
 #
 # Examples:
-#   # Basic build — fully static binary for Linux
+#   # Basic build — fully static binary for Linux, native host arch
 #   crystal-linux-static-build src/myapp.cr
 #
 #   # With sqlite3 (e.g. when using crystal-sqlite3 or vecstolite)
@@ -58,6 +69,10 @@
 #
 #   # Use docker explicitly
 #   crystal-linux-static-build src/myapp.cr --engine docker
+#
+#   # CI matrix — build amd64 on ubuntu-latest, arm64 on ubuntu-24.04-arm
+#   # Each runner builds its own native binary; output filenames won't collide
+#   crystal-linux-static-build src/myapp.cr   # -> myapp-linux-amd64 or -arm64
 #
 # Alpine APK reference for common Crystal dependencies:
 #   libgc, libevent, pcre2    Already included in crystallang/crystal:latest-alpine
@@ -120,11 +135,6 @@ if [[ -z "$BINARY" ]]; then
   BINARY=$(basename "$SOURCE" .cr)
 fi
 
-# Derive output path if not specified
-if [[ -z "$OUTPUT" ]]; then
-  OUTPUT="bin/release/${BINARY}-linux"
-fi
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -154,6 +164,31 @@ else
 fi
 
 log "Using container engine: $ENGINE"
+
+# ---------------------------------------------------------------------------
+# Detect host architecture
+# ---------------------------------------------------------------------------
+# The container engine pulls the image matching the host's native
+# architecture, so the build runs natively — no emulation. This script does
+# not support cross-arch builds; run it on a runner of each target
+# architecture instead (see header comment for CI matrix guidance).
+
+HOST_ARCH=$(uname -m)
+case "$HOST_ARCH" in
+  x86_64|amd64)   ARCH="amd64" ;;
+  aarch64|arm64)  ARCH="arm64" ;;
+  *)
+    echo "error: unsupported host architecture: $HOST_ARCH" >&2
+    exit 1
+    ;;
+esac
+
+log "Building for architecture: $ARCH (native, no emulation)"
+
+# Derive output path if not specified — now that ARCH is known
+if [[ -z "$OUTPUT" ]]; then
+  OUTPUT="bin/release/${BINARY}-linux-${ARCH}"
+fi
 
 # ---------------------------------------------------------------------------
 # Resolve paths
@@ -208,7 +243,7 @@ $VERBOSE && {
 # Run the container
 # ---------------------------------------------------------------------------
 
-log "Building $BINARY for Linux (static) in $IMAGE..."
+log "Building $BINARY for Linux/$ARCH (static) in $IMAGE..."
 
 CONTAINER_ARGS=(
   "--rm"

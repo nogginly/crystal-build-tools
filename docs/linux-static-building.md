@@ -13,9 +13,8 @@ shards build --release --static
 
 Alpine uses musl libc, which — unlike glibc — supports fully static
 executables. The result is a single binary with zero runtime dependencies that
-runs on any Linux (of matching architecture) regardless of what libraries are installed.
-
-> TODO - how to build for x86 vs ARM ... default on macOS with Apple Silicon is ARM binary for Linux, etc.
+runs on any Linux of the same CPU architecture, regardless of what libraries
+are installed.
 
 The challenge is producing this binary from a macOS development machine, or
 from a standard glibc Linux distro (Ubuntu, Debian, etc.) where `--static`
@@ -41,6 +40,44 @@ The project directory is mounted **read-only** into the container. A writable
 workspace is created by copying it, so the build can write to `lib/` and `bin/`
 freely without touching the host source tree. Only the output binary is written
 back to the host, via a separate writable mount.
+
+## Architecture
+
+The script builds **natively** for whatever CPU architecture the host machine
+is running — amd64 or arm64. It does not cross-compile or use emulation.
+Podman and Docker both pull the image matching the host's native architecture
+automatically, so the build is fast and produces a binary for that
+architecture only.
+
+```
+Apple Silicon Mac  ──► arm64 binary
+Intel Mac           ──► amd64 binary
+ARM Linux host       ──► arm64 binary
+x86_64 Linux host    ──► amd64 binary
+```
+
+Output filenames include the architecture to avoid collisions:
+`bin/release/<name>-linux-amd64`, `bin/release/<name>-linux-arm64`.
+
+**To produce both architectures**, run the script on a runner of each kind
+— this is the recommended approach in CI, mirroring the existing macOS matrix
+(`macos-latest` for arm64, `macos-15-intel` for x86_64). GitHub Actions
+provides native ARM Linux runners (`ubuntu-24.04-arm` and similar), so no
+QEMU or cross-compilation is needed:
+
+```yaml
+strategy:
+  matrix:
+    include:
+      - runner: ubuntu-latest
+        arch: amd64
+      - runner: ubuntu-24.04-arm
+        arch: arm64
+runs-on: ${{ matrix.runner }}
+```
+
+Each runner builds its own native binary; the script's automatic architecture
+detection means no extra flags are needed per matrix entry.
 
 ## Prerequisites
 
@@ -85,8 +122,10 @@ bin/crystal-linux-static-build src/myapp.cr --engine docker
 bin/crystal-linux-static-build --help
 ```
 
-The output binary lands at `bin/release/<name>-linux` by default. The `-linux`
-suffix distinguishes it from a native macOS build in the same directory.
+The output binary lands at `bin/release/<name>-linux-<arch>` by default, where
+`<arch>` is `amd64` or `arm64` based on the host. This distinguishes both
+architectures and the native macOS build from each other in the same
+directory.
 
 ## Alpine APK reference
 
@@ -108,21 +147,37 @@ for any C library you need.
 ## In a GitHub Actions release workflow
 
 The script works in CI as-is, provided the runner has podman or docker
-available. Ubuntu runners have docker pre-installed:
+available. Ubuntu runners have docker pre-installed. To build both
+architectures, use a matrix with native amd64 and arm64 runners:
 
 ```yaml
-- name: Checkout with submodules
-  uses: actions/checkout@v6
-  with:
-    submodules: true
+jobs:
+  release-linux:
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout with submodules
+        uses: actions/checkout@v6
+        with:
+          submodules: true
 
-- name: Build static Linux binary
-  run: |
-    tools/crystal-build-tools/bin/crystal-linux-static-build src/myapp.cr \
-      --binary myapp \
-      --extra-apks "sqlite-static" \
-      --engine docker
+      - name: Build static Linux binary
+        run: |
+          tools/crystal-build-tools/bin/crystal-linux-static-build src/myapp.cr \
+            --binary myapp \
+            --extra-apks "sqlite-static" \
+            --engine docker
 ```
+
+The script auto-detects the architecture from the runner, so the same command
+works unchanged on both matrix entries — output files won't collide since the
+architecture is included in the filename.
 
 Alternatively, for Linux release builds you can use the
 `crystallang/crystal:latest-alpine` container image directly as the runner,
