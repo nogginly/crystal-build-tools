@@ -72,9 +72,8 @@ echo ""
 
 echo "$(_bold 'Fixture: hello-sqlite')"
 
-# Install deps into the fixture before building
-(cd "$FIXTURES/hello-sqlite" && shards --production check || shards --production install) \
-  > /dev/null 2>&1
+run_test "install shards" \
+  bash -c "cd '$FIXTURES/hello-sqlite' && shards --production check || shards --production install"
 
 run_test "builds successfully with sqlite3" \
   "$SCRIPT" $VERBOSE_FLAG \
@@ -102,8 +101,8 @@ echo ""
 
 echo "$(_bold 'Fixture: hello-webui')"
 
-(cd "$FIXTURES/hello-webui" && shards --production check || shards --production install) \
-  > /dev/null 2>&1
+run_test "install shards" \
+  bash -c "cd '$FIXTURES/hello-webui' && shards --production check || shards --production install"
 
 run_test "builds successfully with pre-build step" \
   "$SCRIPT" $VERBOSE_FLAG \
