@@ -6,7 +6,7 @@ applications, with a focus on producing self-contained binaries for release.
 ## Install via git submodule
 
 ```sh
-git submodule add https://github.com/enkaidu-dev/crystal-build-tools tools/crystal-build-tools
+git submodule add https://github.com/nogginly/crystal-build-tools tools/crystal-build-tools
 ```
 
 ## Scripts
@@ -60,7 +60,7 @@ tools/crystal-build-tools/bin/crystal-macos-static-build src/myapp.cr \
 
 Builds a fully static Crystal binary for Linux using an Alpine container, from
 either macOS or Linux. The result has zero runtime dependencies and runs on
-any x86_64 Linux. Supports both Podman and Docker.
+any Linux of the matching architecture. Supports both Podman and Docker.
 
 ```sh
 # Basic build — fully static binary for Linux

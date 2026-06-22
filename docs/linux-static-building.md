@@ -28,12 +28,12 @@ Host (macOS or Linux)
   │
   └── podman / docker run crystallang/crystal:latest-alpine
           │
-          ├── apk add <extra-apks>       ← optional extra Alpine packages
-          ├── cp /project /workspace     ← copy from read-only mount
-          ├── <pre-build command>        ← optional (e.g. web UI compilation)
-          ├── shards install
+          ├── apk add <extra-apks>                         ← optional extra Alpine packages
+          ├── cp /project /workspace                       ← copy from read-only mount
+          ├── <pre-build command>                          ← optional (e.g. web UI compilation)
+          ├── shards --production check || shards install  ← install deps
           ├── shards build --release --static
-          └── cp bin/<name> /output      ← write to host via mount
+          └── cp bin/<name> /output                        ← write to host via mount
 ```
 
 The project directory is mounted **read-only** into the container. A writable
