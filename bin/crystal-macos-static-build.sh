@@ -249,6 +249,7 @@ else
 
     if static_path=$(find_static_lib "$lib"); then
       run cp "$static_path" "$STATIC_DIR/"
+      chmod 644 "$STATIC_DIR/$(basename "$static_path")"
       LINKED_LIBS+=("$lib")
       log "  [static] $lib  ← $static_path"
     else
