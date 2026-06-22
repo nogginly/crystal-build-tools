@@ -4,3 +4,5 @@ test/fixtures/*/shard.lock
 test/fixtures/*/bin/
 test/fixtures/*/webui/dist/
 test/fixtures/*/webui/node_modules/
+**/lib
+**/node_modules
