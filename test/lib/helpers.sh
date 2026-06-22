@@ -80,6 +80,7 @@ assert_runs() {
 # Assert otool -L shows only system dylibs (macOS only)
 assert_only_system_dylibs() {
   local binary="$1"
+  [[ -f "$binary" ]] || { echo "binary not found: $binary" >&2; return 1; }
   local libs
   libs=$(otool -L "$binary" | tail -n +2 | awk '{print $1}')
   local non_system
