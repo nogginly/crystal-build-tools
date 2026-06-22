@@ -109,6 +109,33 @@ done
 [[ -z "$SOURCE" ]] && { echo "error: no source file specified" >&2; exit 1; }
 [[ -f "$SOURCE" ]] || { echo "error: source file not found: $SOURCE" >&2; exit 1; }
 
+# Resolve OUTPUT to absolute path now, before we cd — it may be relative
+# to the caller's working directory.
+if [[ -n "$OUTPUT" ]]; then
+  OUTPUT_DIR_ABS=$(mkdir -p "$(dirname "$OUTPUT")" && cd "$(dirname "$OUTPUT")" && pwd)
+  OUTPUT="$OUTPUT_DIR_ABS/$(basename "$OUTPUT")"
+fi
+
+# Resolve project root by walking up from the source file to find shard.yml.
+# Falls back to the source file's directory if no shard.yml is found.
+SOURCE_ABS=$(cd "$(dirname "$SOURCE")" && pwd)/$(basename "$SOURCE")
+SOURCE_DIR=$(dirname "$SOURCE_ABS")
+
+PROJECT_DIR="$SOURCE_DIR"
+_search="$SOURCE_DIR"
+while [[ "$_search" != "/" ]]; do
+  if [[ -f "$_search/shard.yml" ]]; then
+    PROJECT_DIR="$_search"
+    break
+  fi
+  _search=$(dirname "$_search")
+done
+
+cd "$PROJECT_DIR"
+
+# Re-resolve SOURCE relative to PROJECT_DIR now that we've cd'd
+SOURCE=$(python3 -c "import os; print(os.path.relpath('$SOURCE_ABS', '$PROJECT_DIR'))")
+
 # Derive output path from source filename if not specified
 if [[ -z "$OUTPUT" ]]; then
   BASENAME=$(basename "$SOURCE" .cr)
@@ -222,6 +249,7 @@ else
 
     if static_path=$(find_static_lib "$lib"); then
       run cp "$static_path" "$STATIC_DIR/"
+      chmod 644 "$STATIC_DIR/$(basename "$static_path")"
       LINKED_LIBS+=("$lib")
       log "  [static] $lib  ← $static_path"
     else

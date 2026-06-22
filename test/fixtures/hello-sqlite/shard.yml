@@ -1,0 +1,10 @@
+name: hello-sqlite
+version: 0.1.0
+
+dependencies:
+  sqlite3:
+    github: crystal-lang/crystal-sqlite3
+
+targets:
+  hello-sqlite:
+    main: src/hello-sqlite.cr

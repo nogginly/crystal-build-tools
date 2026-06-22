@@ -1,0 +1,10 @@
+name: hello-webui
+version: 0.1.0
+
+dependencies:
+  baked_file_system:
+    github: schovi/baked_file_system
+
+targets:
+  hello-webui:
+    main: src/hello-webui.cr

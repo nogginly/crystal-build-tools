@@ -234,6 +234,10 @@ to avoid conflicting with Apple's own copies. Their `.a` files live under
 `crystal-macos-static-build` knows about these locations and searches them
 automatically.
 
+Keg-only `.a` files are installed read-only by Homebrew (`-r--r--r--`). The
+script `chmod 644`s each file after copying it into the staging directory, so
+the linker can read and process them correctly.
+
 ## `crystal-macos-static-build`
 
 The script in `bin/crystal-macos-static-build` automates the full process:
@@ -244,12 +248,22 @@ crystal-macos-static-build src/myapp.cr -o bin/release/myapp --release
 
 ```mermaid
 flowchart TD
-    A[crystal build --verbose\ndry-run] -->|parse cc line| B[discover -l flags]
-    B --> C[copy .a files to\nstaging dir]
-    C --> D[crystal build --emit obj\ncompile only]
-    D --> E[cc manually\nno Crystal -L paths]
-    E --> F[otool -L verify\nonly system libs remain]
+    A[walk up from source\nfind shard.yml → cd] -->|project root| B[crystal build --verbose\ndry-run probe]
+    B -->|parse cc line| C[discover -l flags]
+    C --> D[copy .a files to\nstaging dir\nchmod 644 each]
+    D --> E[crystal build --emit obj\ncompile only]
+    E --> F[cc manually\nno Crystal -L paths]
+    F --> G[otool -L verify\nonly system libs remain]
 ```
+
+The script automatically walks up from the source file to find `shard.yml`
+and changes into that directory before building, so it works correctly
+regardless of the caller's working directory.
+
+If your project bakes in assets at compile time (e.g. via `baked_file_system`),
+those assets must exist before the script runs — the dry-run probe compiles
+the source and will fail if referenced paths are missing. Run any asset
+generation (web UI build, etc.) before invoking the script.
 
 See the script's `--help` output and inline comments for full usage.
 
