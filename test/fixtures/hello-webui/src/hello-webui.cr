@@ -1,7 +1,7 @@
 require "baked_file_system"
 
 class Storage
-  BakedFileSystem.load("../../webui/dist", __DIR__)
+  BakedFileSystem.load("../webui/dist", __DIR__)
 end
 
 # Verify the baked file is accessible
