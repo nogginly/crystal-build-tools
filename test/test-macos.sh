@@ -104,6 +104,9 @@ echo "$(_bold 'Fixture: hello-webui')"
 run_test "install shards" \
   bash -c "cd '$FIXTURES/hello-webui' && shards --production check || shards --production install"
 
+run_test "build webui" \
+  bash -c "cd '$FIXTURES/hello-webui/webui' && npm run build"
+
 run_test "builds successfully with pre-build step" \
   "$SCRIPT" $VERBOSE_FLAG \
     "$FIXTURES/hello-webui/src/hello-webui.cr" \
