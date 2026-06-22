@@ -245,7 +245,7 @@ fi
 
 # Install shards and build
 CONTAINER_SCRIPT+="
-[ -f shard.yml ] && (shards --production check || shards --production install)
+[ -f shard.yml ] && shards --production install
 shards build $BINARY $SHARDS_BUILD_ARGS --static
 cp bin/$BINARY /output/$OUTPUT_FILENAME"
 
