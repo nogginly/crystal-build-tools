@@ -73,7 +73,7 @@ echo ""
 echo "$(_bold 'Fixture: hello-sqlite')"
 
 run_test "install shards" \
-  bash -c "cd '$FIXTURES/hello-sqlite' && shards --production install"
+  bash -c "cd '$FIXTURES/hello-sqlite' && shards --production check || shards --production install"
 
 run_test "builds successfully with sqlite3" \
   "$SCRIPT" $VERBOSE_FLAG \
@@ -102,7 +102,7 @@ echo ""
 echo "$(_bold 'Fixture: hello-webui')"
 
 run_test "install shards" \
-  bash -c "cd '$FIXTURES/hello-webui' && shards --production install"
+  bash -c "cd '$FIXTURES/hello-webui' && shards --production check || shards --production install"
 
 run_test "builds successfully with pre-build step" \
   "$SCRIPT" $VERBOSE_FLAG \
