@@ -1,0 +1,64 @@
+name: Test Build Scripts
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-macos:
+    name: macOS (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            arch: arm64
+          - os: macos-15-intel
+            arch: x86_64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Crystal
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: latest
+
+      - name: Install static libs
+        run: |
+          brew install bdw-gc libevent pcre2 openssl@3 libxml2 libyaml sqlite
+
+      - name: Make scripts executable
+        run: chmod +x bin/*.sh test/*.sh
+
+      - name: Run macOS tests
+        run: test/test-macos.sh
+
+  test-linux:
+    name: Linux (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Make scripts executable
+        run: chmod +x bin/*.sh test/*.sh
+
+      - name: Run Linux tests
+        run: test/test-linux.sh
