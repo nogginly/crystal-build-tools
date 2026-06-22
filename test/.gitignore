@@ -1,0 +1,6 @@
+test/output/
+test/fixtures/*/lib/
+test/fixtures/*/shard.lock
+test/fixtures/*/bin/
+test/fixtures/*/webui/dist/
+test/fixtures/*/webui/node_modules/

@@ -104,6 +104,35 @@ tools/crystal-build-tools/bin/crystal-linux-static-build src/myapp.cr \
       --binary myapp --extra-apks "sqlite-static" --engine docker
 ```
 
+## Development
+
+Each script is self-documented: `--help` prints the header comment block, so
+keep that up to date when changing behaviour or adding options.
+
+### Running the tests
+
+Integration tests run the scripts against minimal Crystal fixture projects
+in `test/fixtures/` and verify the output.
+
+```sh
+# macOS — requires Crystal and Homebrew static libs
+brew install bdw-gc libevent pcre2 openssl@3 libxml2 libyaml sqlite
+chmod +x bin/*.sh test/*.sh
+test/test-macos.sh
+
+# Linux — requires podman or docker
+chmod +x bin/*.sh test/*.sh
+test/test-linux.sh
+
+# Verbose output (shows all script commands)
+VERBOSE=1 test/test-macos.sh
+VERBOSE=1 test/test-linux.sh
+```
+
+CI runs these automatically on push and pull request, across all four
+supported runner configurations (macOS arm64, macOS x86_64, Linux amd64,
+Linux arm64).
+
 ### Why?
 
 The background and reasoning behind these tools is documented in:
