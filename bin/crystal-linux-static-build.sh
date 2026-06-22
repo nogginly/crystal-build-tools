@@ -194,7 +194,22 @@ fi
 # Resolve paths
 # ---------------------------------------------------------------------------
 
-PROJECT_DIR=$(pwd)
+# Project root is the directory containing shard.yml, derived by walking up
+# from the source file. Falls back to the directory containing the source
+# file itself if no shard.yml is found (e.g. single-file projects).
+SOURCE_ABS=$(cd "$(dirname "$SOURCE")" && pwd)/$(basename "$SOURCE")
+SOURCE_DIR=$(dirname "$SOURCE_ABS")
+
+PROJECT_DIR="$SOURCE_DIR"
+_search="$SOURCE_DIR"
+while [[ "$_search" != "/" ]]; do
+  if [[ -f "$_search/shard.yml" ]]; then
+    PROJECT_DIR="$_search"
+    break
+  fi
+  _search=$(dirname "$_search")
+done
+
 OUTPUT_DIR=$(dirname "$OUTPUT")
 OUTPUT_FILENAME=$(basename "$OUTPUT")
 
@@ -230,7 +245,7 @@ fi
 
 # Install shards and build
 CONTAINER_SCRIPT+="
-shards --production check || shards --production install
+[ -f shard.yml ] && (shards --production check || shards --production install)
 shards build $BINARY $SHARDS_BUILD_ARGS --static
 cp bin/$BINARY /output/$OUTPUT_FILENAME"
 
